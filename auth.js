@@ -1,7 +1,7 @@
-// ---------- Supabase Setup ----------
+
 const SUPABASE_URL = "https://kfonugwtvqmpltfdldri.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtmb251Z3d0dnFtcGx0ZmRsZHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NDY4MDUsImV4cCI6MjA3NDMyMjgwNX0.H-9mm9JdAAhLUrhvSRf_j47POPNQR4MhcXpT3dHCa38";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // --- 🔹 redirect token handling (verhindert „Auth session missing“) ---
 (async function handleRedirect() {
@@ -13,7 +13,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   if (access_token && refresh_token) {
     console.log("🔐 Session aus Redirect erkannt – setze Tokens...");
-    await supabase.auth.setSession({ access_token, refresh_token });
+    await client.auth.setSession({ access_token, refresh_token });
 
     // optional: Nutzer sofort weiterleiten
     if (type === "signup") {
@@ -32,13 +32,13 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
   const email = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value.trim();
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await client.auth.signInWithPassword({ email, password });
   if (error) return alert("Login fehlgeschlagen: " + error.message);
 
   currentUser = data.user || data.session?.user;
 
   // Farmzuordnung prüfen
-  const { data: farmUser, error: farmError } = await supabase
+  const { data: farmUser, error: farmError } = await client
     .from("farm_users")
     .select("farm_id")
     .eq("user_id", currentUser.id)
@@ -67,7 +67,7 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
 
   // 1️⃣ Benutzer registrieren
   console.log("Registriere Benutzer...", { email, username, farmName, farmCode });
-  const { data, error } = await supabase.auth.signUp({
+  const { data, error } = await client.auth.signUp({
     email,
     password,
     options: { 
@@ -109,7 +109,7 @@ function startVerificationPolling(username, farmName, farmCode) {
   verifyStatus.textContent = "Bitte bestätige deine E-Mail-Adresse. Wir prüfen automatisch...";
 
   let checkInterval = setInterval(async () => {
-    const { data: userData, error: checkError } = await supabase.auth.getUser();
+    const { data: userData, error: checkError } = await client.auth.getUser();
     console.log("Prüfe Verifizierung...", userData);
     if (checkError) return console.warn(checkError.message);
     console.log("Prüfe Verifizierung...", userData);
@@ -126,7 +126,7 @@ function startVerificationPolling(username, farmName, farmCode) {
 
   // Manuelles Prüfen-Button
   checkBtn.addEventListener("click", async () => {
-    const { data: userData } = await supabase.auth.getUser();
+    const { data: userData } = await client.auth.getUser();
     if (userData.user && userData.user.email_confirmed_at) {
       clearInterval(checkInterval);
       verifyStatus.textContent = "✅ E-Mail bestätigt!";
@@ -149,7 +149,7 @@ async function handleFarmSetup(currentUser, username, farmName, farmCode) {
   if (farmName) {
     const inviteCode = generateInviteCode();
 
-    const { data: farm, error: farmError } = await supabase
+    const { data: farm, error: farmError } = await client
       .from("farms")
       .insert([{ name: farmName, invite_code: inviteCode }])
       .select()
@@ -162,7 +162,7 @@ async function handleFarmSetup(currentUser, username, farmName, farmCode) {
 
     farmId = farm.id;
 
-    await supabase.from("farm_users").insert([{
+    await client.from("farm_users").insert([{
       user_id: currentUser.id,
       farm_id: farmId,
       role: "admin",
@@ -174,7 +174,7 @@ async function handleFarmSetup(currentUser, username, farmName, farmCode) {
 
   // Farm beitreten
   else if (farmCode) {
-    const { data: farm, error: codeError } = await supabase
+    const { data: farm, error: codeError } = await client
       .from("farms")
       .select("id")
       .eq("invite_code", farmCode)
@@ -187,7 +187,7 @@ async function handleFarmSetup(currentUser, username, farmName, farmCode) {
 
     farmId = farm.id;
 
-    await supabase.from("farm_users").insert([{
+    await client.from("farm_users").insert([{
       user_id: currentUser.id,
       farm_id: farmId,
       role: "member",

@@ -321,43 +321,17 @@ body {
   .modal-content { background: var(--card-bg); border-color: var(--card-border); }
 }
 
-#animal-search-wrapper {
-  position: relative;
+
+#animal-list .picker-item {
+  cursor: pointer;
 }
 
-/* Dropdown soll direkt unterhalb des Eingabefelds erscheinen */
-#animal-results {
-  position: absolute;
-  top: 100%;          /* direkt unterhalb des Inputs */
-  left: 0;
-  right: 0;
-  z-index: 1000;      /* über allem anderen */
-  max-height: 260px;
-  overflow-y: auto;
-  margin-top: 2px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, .1);
-  border: 1px solid #d1e7dd;
+#animal-list .picker-item.is-focused {
+  outline: 2px solid var(--brand);
+  background-color: #e9f7ef;
 }
 
-/* Wenn Dropdown sichtbar */
-#animal-results.show {
-  display: block;
-}
-
-/* Damit die ausgewählten Tiere schön unten drunter bleiben */
-#selected-animals {
-  position: relative;     /* bleibt im Fluss */
-  margin-top: calc(260px + 1rem); /* Platz, wenn Dropdown offen (wird per JS dynamisch gleich besser gelöst) */
-}
-
-
-#animal-results {
-  position: static; /* statt absolute */
-  display: none;
-}
-
-#animal-results.show {
-  display: block;
-  margin-top: .5rem;
+#animal-list .picker-item.is-selected {
+  background-color: #d1e7dd;
+  border-color: #badbcc;
 }

@@ -6,6 +6,7 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 /***** State *****/
 let currentUser = null;
 let currentFarmId = localStorage.getItem("currentFarmId"); // von Login gesetzt
+let medications = [];
 const TEAM_FIELD = "farm_id"; // das Feld in der animals-Tabelle, das die Farm referenziert
 
 /***** Helpers *****/
@@ -54,70 +55,136 @@ function showAlert(type = "success", html = "") {
     showAlert("danger", "Keine Farm ausgewählt. Bitte melde dich neu an.");
     return;
   }
+  initAnimalPicker();
+  await loadMedications();
+  const treatmentForm = document.getElementById("treatment-form");
+  if (treatmentForm) {
+    treatmentForm.addEventListener("submit", onSaveTreatment);
+  }
+
 })();
 
 
-(function () {
-  // ---------- Konfig ----------
-  const PAGE_LIMIT = 20;         // max. Treffer pro Suche
-  const MIN_QUERY_LEN = 1;       // ab wie vielen Zeichen suchen
-  const TEAM_FIELD = "farm_id";  // dein Team/Farm-Feld
-
-  // ---------- DOM ----------
+function initAnimalPicker() {
   const elSearch   = document.getElementById("animal-search");
-  const elResults  = document.getElementById("animal-results");
+  const elList     = document.getElementById("animal-list");
   const elSelected = document.getElementById("selected-animals");
   const elHidden   = document.getElementById("selected-animal-ids");
+  const elStatus   = document.getElementById("animal-status");
+  const elConfirm  = document.getElementById("confirm-animal-selection");
+  const elSelectedList = document.getElementById("selected-animals-list");
 
-  // State
+  if (!elSearch || !elList) return; // falls Seite ohne Picker
+
+  let animals = [];
   let selectedMap = new Map(); // id -> {id, label}
-  let results = [];
   let focusedIndex = -1;
-  let searching = false;
-  let lastQuery = "";
 
-  // ---------- Utils ----------
-  function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
-  const fmt = (d) => d ?? "—";
+  const fmt = (v) => v ?? "—";
+  if(elConfirm){
+    elConfirm.addEventListener("click", () => {
+      const selectedIds = Array.from(selectedMap.keys());
+      elHidden.value = selectedIds.join(",");
 
-  function isOpen() {
-    return elResults.classList.contains("show");
+      const offcanvasEl = document.getElementById("animalSelectOffcanvas");
+      const offcanvas = bootstrap.Offcanvas.getInstance(offcanvasEl);
+      offcanvas.hide();
+      displaySelectedAnimals(selectedMap);
+      }
+    );
   }
-  function openDropdown() {
-    if (!elResults.classList.contains("show")) {
-      elResults.classList.add("show");
-      elSearch.setAttribute("aria-expanded", "true");
-    }
-  }
-  function closeDropdown() {
-    if (elResults.classList.contains("show")) {
-      elResults.classList.remove("show");
-      elSearch.setAttribute("aria-expanded", "false");
-      focusedIndex = -1;
-      updateFocus();
-    }
+  function displaySelectedAnimals(selectedMap) {
+    elSelectedList.innerHTML = "";
+    selectedMap.forEach(({ id, label }) => {
+      const li = document.createElement("li");
+      li.className = "list-group-item d-flex justify-content-between align-items-center";
+      li.textContent = label;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-sm btn-outline-danger";
+      btn.innerHTML = '&times;';
+      btn.addEventListener("click", () => removeSelection(id));
+      li.appendChild(btn);
+      elSelectedList.appendChild(li);
+      
+    });
   }
 
   function setHiddenValue() {
     elHidden.value = Array.from(selectedMap.keys()).join(",");
   }
 
-  function addSelection(item) {
-    if (selectedMap.has(item.id)) return; // keine Duplikate
-    selectedMap.set(item.id, { id: item.id, label: item.label });
+  function labelFor(a) {
+    return `${fmt(a.animal_number)} · ${fmt(a.animal_id)}`;
+  }
 
-    // Pill rendern
+  function genderSymbol(gender) {
+  if (gender === "männlich") {
+    return `<span class="badge text-bg-primary rounded-pill">m</span>`;
+  }
+  if (gender === "weiblich") {
+    return `<span class="badge" style="background-color:#d63384;color:white;">w</span>`;
+  }
+  return `<span class="badge text-bg-secondary rounded-pill">?</span>`;
+}
+
+  function updateStatus() {
+    elStatus.textContent = `${animals.length} Tiere · ${selectedMap.size} ausgewählt`;
+  }
+
+  function renderList() {
+    elList.innerHTML = "";
+    animals.forEach((a, index) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "list-group-item list-group-item-action d-flex justify-content-between align-items-center picker-item";
+      row.dataset.index = String(index);
+      row.dataset.id = a.id;
+      row.dataset.number = (a.animal_number || "").toString().toLowerCase();
+      row.dataset.aid = (a.animal_id || "").toString().toLowerCase();
+
+      row.innerHTML = `
+        <span>
+          <strong>${fmt(a.animal_number)}</strong>
+          <small class="text-muted ms-1">ID: ${fmt(a.animal_id)}</small>
+        </span>
+        ${genderSymbol(a.gender)}
+      `;
+
+      row.addEventListener("click", () => toggleSelection(a.id));
+      elList.appendChild(row);
+    });
+    updateSelectionStyles();
+    updateStatus();
+  }
+
+  function updateSelectionStyles() {
+    const rows = elList.querySelectorAll(".picker-item");
+    rows.forEach((row) => {
+      const id = row.dataset.id;
+      row.classList.toggle("is-selected", selectedMap.has(id));
+    });
+  }
+
+  function addSelection(id) {
+    const a = animals.find(x => x.id === id);
+    if (!a || selectedMap.has(id)) return;
+
+    selectedMap.set(id, { id, label: labelFor(a) });
+
     const pill = document.createElement("span");
     pill.className = "badge rounded-pill text-bg-success d-inline-flex align-items-center px-3 py-2";
-    pill.dataset.id = item.id;
+    pill.dataset.id = id;
     pill.innerHTML = `
-      <span class="me-2">${item.label}</span>
+      <span class="me-2">${labelFor(a)}</span>
       <button type="button" class="btn btn-sm btn-light ms-1" aria-label="Entfernen">&times;</button>
     `;
-    pill.querySelector("button").addEventListener("click", () => removeSelection(item.id));
+    pill.querySelector("button").addEventListener("click", () => removeSelection(id));
     elSelected.appendChild(pill);
 
     setHiddenValue();
+    updateSelectionStyles();
+    updateStatus();
   }
 
   function removeSelection(id) {
@@ -125,170 +192,309 @@ function showAlert(type = "success", html = "") {
     const pill = elSelected.querySelector(`[data-id="${CSS.escape(id)}"]`);
     if (pill) pill.remove();
     setHiddenValue();
+    updateSelectionStyles();
+    updateStatus();
   }
 
-  // Für Außen: hole die IDs als Array
-  window.getSelectedAnimalIds = () => Array.from(selectedMap.keys());
-
-  // ---------- Rendering der Ergebnisse ----------
-  function renderResults() {
-    elResults.innerHTML = "";
-
-    if (searching) {
-      elResults.innerHTML = `<div class="dropdown-item disabled text-muted">Suche…</div>`;
-      openDropdown();
-      return;
+  function toggleSelection(id) {
+    if (selectedMap.has(id)) {
+      removeSelection(id);
+    } else {
+      addSelection(id);
     }
-    if (!results.length) {
-      if (lastQuery.length >= MIN_QUERY_LEN) {
-        elResults.innerHTML = `<div class="dropdown-item disabled text-muted">Keine Treffer</div>`;
-        openDropdown();
-      } else {
-        closeDropdown();
-      }
-      return;
+  }
+
+  function clearFocus() {
+    elList.querySelectorAll(".picker-item.is-focused")
+      .forEach(row => row.classList.remove("is-focused"));
+  }
+
+  function focusRow(index, scroll = true) {
+    const rows = Array.from(elList.querySelectorAll(".picker-item"));
+    if (!rows.length) return;
+
+    if (index < 0) index = 0;
+    if (index >= rows.length) index = rows.length - 1;
+
+    clearFocus();
+    const row = rows[index];
+    row.classList.add("is-focused");
+    focusedIndex = index;
+
+    if (scroll) {
+      row.scrollIntoView({ block: "center" });
     }
-
-    // Treffer bauen
-    results.forEach((r, idx) => {
-      const item = document.createElement("button");
-      item.type = "button";
-      item.className = "dropdown-item d-flex justify-content-between align-items-center";
-      item.setAttribute("data-index", String(idx));
-      item.innerHTML = `
-        <span>
-          <strong>${fmt(r.animal_number)}</strong>
-          <small class="text-muted ms-1">ID: ${fmt(r.animal_id)}</small>
-        </span>
-        <span class="badge ${badgeForGender(r.gender)}">${fmt(r.gender)}</span>
-      `;
-      item.addEventListener("click", () => {
-        addSelection({ id: r.id, label: labelFor(r) });
-        // Suche offen lassen, aber Text beibehalten
-        elSearch.focus();
-      });
-      elResults.appendChild(item);
-    });
-
-    openDropdown();
-    updateFocus();
   }
 
-  function labelFor(a) {
-    return `${fmt(a.animal_number)} · ${fmt(a.animal_id)}`;
-  }
-  function badgeForGender(g) {
-    if (g === "weiblich") return "text-bg-success";
-    if (g === "männlich") return "text-bg-primary";
-    return "text-bg-secondary";
-  }
-
-  function updateFocus() {
-    const items = Array.from(elResults.querySelectorAll(".dropdown-item:not(.disabled)"));
-    items.forEach((it, i) => {
-      if (i === focusedIndex) it.classList.add("active");
-      else it.classList.remove("active");
-    });
-  }
-
-  // ---------- Suche (Server-seitig via Supabase) ----------
-  const runSearch = debounce(async function (q) {
-    lastQuery = q;
-
-    if (q.length < MIN_QUERY_LEN) {
-      results = [];
-      renderResults();
+  function focusFirstMatch(query) {
+    const q = query.trim().toLowerCase();
+    clearFocus();
+    if (!q) {
+      elList.scrollTop = 0;
+      focusedIndex = -1;
       return;
     }
 
-    searching = true;
-    renderResults();
+    const rows = Array.from(elList.querySelectorAll(".picker-item"));
+    const idx = rows.findIndex(row =>
+      row.dataset.number.includes(q) || row.dataset.aid.includes(q)
+    );
 
-    // Supabase-Query
-    // HINWEIS: supabase-Objekt & currentFarmId müssen global verfügbar sein
-    const query = supabase
-      .from("animals")
-      .select("id, animal_number, animal_id, gender")
-      .eq(TEAM_FIELD, localStorage.getItem("currentFarmId"))
-      .or(`animal_number.ilike.%${q}%,animal_id.ilike.%${q}%`)
-      .order("animal_number", { ascending: true })
-      .limit(PAGE_LIMIT);
-
-    const { data, error } = await query;
-
-    searching = false;
-
-    if (error) {
-      console.error("Suche Fehler:", error.message);
-      results = [];
-      renderResults();
+    if (idx === -1) {
+      elStatus.textContent = `Keine Treffer für „${query}“ · ${animals.length} Tiere · ${selectedMap.size} ausgewählt`;
       return;
     }
 
-    results = (data || []);
-    renderResults();
-  }, 200);
+    focusRow(idx, true);
+    updateStatus();
+  }
 
-  // ---------- Events ----------
-  // Tippen → suchen
+  // Sucheingabe
   elSearch.addEventListener("input", (e) => {
-    const val = e.target.value.trim();
-    runSearch(val);
-    document.getElementById("selected-animals").classList.add("mt-3");
-    console.log("Suchbegriff:", val);
-  });
-
-  // Fokus → öffnen, wenn es Ergebnisse gibt
-  elSearch.addEventListener("focus", () => {
-    if (results.length) openDropdown();
+    const val = e.target.value;
+    focusFirstMatch(val);
   });
 
   // Keyboard-Steuerung
   elSearch.addEventListener("keydown", (e) => {
-    if (!isOpen() && (e.key === "ArrowDown" || e.key === "Enter")) {
-      openDropdown();
-      return;
-    }
-    const items = Array.from(elResults.querySelectorAll(".dropdown-item:not(.disabled)"));
-    if (!items.length) return;
+    const rows = Array.from(elList.querySelectorAll(".picker-item"));
+    if (!rows.length) return;
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      focusedIndex = (focusedIndex + 1) % items.length;
-      updateFocus();
+      focusRow(focusedIndex + 1);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      focusedIndex = (focusedIndex - 1 + items.length) % items.length;
-      updateFocus();
+      focusRow(focusedIndex - 1);
     } else if (e.key === "Enter") {
-      if (focusedIndex >= 0 && focusedIndex < items.length) {
+      if (focusedIndex >= 0 && focusedIndex < rows.length) {
         e.preventDefault();
-        const idx = Number(items[focusedIndex].getAttribute("data-index"));
-        const r = results[idx];
-        if (r) addSelection({ id: r.id, label: labelFor(r) });
+        const id = rows[focusedIndex].dataset.id;
+        toggleSelection(id);
       }
     } else if (e.key === "Escape") {
-      closeDropdown();
+      clearFocus();
+      focusedIndex = -1;
     }
   });
 
-  // Klick außerhalb → Dropdown schließen
-  document.addEventListener("click", (e) => {
-    const within = e.composedPath().includes(elSearch) || e.composedPath().includes(elResults);
-    if (!within) closeDropdown();
-  });
-})();
+  // Daten einmalig von Supabase laden
+  (async function loadAnimals() {
+    elStatus.textContent = "Lade Tiere…";
 
-const dropdown = document.getElementById("animal-results");
-const selectedList = document.getElementById("selected-animals");
+    const { data, error } = await supabase
+      .from("animals")
+      .select("id, animal_number, animal_id, gender")
+      .eq(TEAM_FIELD, currentFarmId)
+      .order("animal_number", { ascending: true });
 
-const observer = new MutationObserver(() => {
-  if (dropdown.classList.contains("show")) {
-    const rect = dropdown.getBoundingClientRect();
-    selectedList.style.marginTop = rect.height + 12 + "px"; // +12px Abstand
-  } else {
-    selectedList.style.marginTop = "0";
+    if (error) {
+      console.error(error);
+      elStatus.textContent = "Fehler beim Laden der Tiere.";
+      return;
+    }
+
+    animals = data || [];
+    renderList();
+  })();
+}
+
+async function loadMedications() {
+  console.log("Lade Medikamente…");
+
+  const { data, error } = await supabase
+    .from("medications")
+    .select("id, name")
+    .eq("is_vaccine", true)
+    .eq(TEAM_FIELD, currentFarmId)
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("Fehler beim Laden der Medikamente:", error);
+    showAlert("danger", "Fehler beim Laden der Medikamente.");
+    return;
   }
-});
 
-observer.observe(dropdown, { attributes: true, attributeFilter: ["class"] });
+  medications = data || [];
+  renderMedications();
+}
+
+function renderMedications() {
+  const elMedSelect = document.getElementById("treatment-medications"); // <<< ID anpassen
+  if (!elMedSelect) return;
+
+  elMedSelect.innerHTML = ""; // bei multiple kein "Bitte wählen" nötig, optional
+
+  medications.forEach((med) => {
+    const option = document.createElement("option");
+    option.value = med.id;
+    option.textContent = med.name;
+    elMedSelect.appendChild(option);
+  });
+}
+// ---------- Behandlungsprotokoll exportieren ----------
+document.getElementById("export-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+
+  const start = document.getElementById("export-start").value;
+  const end = document.getElementById("export-end").value;
+
+  const { data, error } = await client
+    .from("treatments")
+    .select(`
+      treatment_date,
+      description,
+      animals(animal_number)
+    `)
+    .eq("farm_id", currentFarmId)
+    .gte("treatment_date", start)
+    .lte("treatment_date", end)
+    .order("treatment_date");
+
+  if (error) {
+    alert("Fehler beim Laden: " + error.message);
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    alert("Keine Behandlungen im gewählten Zeitraum.");
+    return;
+  }
+
+  // PDF erstellen
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  pdf.text("Behandlungsprotokoll", 14, 16);
+  pdf.setFontSize(10);
+
+  let y = 28;
+  data.forEach(row => {
+    pdf.text(`${row.treatment_date} – ${row.animals?.animal_number || "?"}`, 14, y);
+    pdf.text(row.description, 14, y + 6);
+    pdf.text(`Tierarzt: ${row.vet || "-"}`, 14, y + 12);
+    y += 22;
+  });
+
+  pdf.save(`Behandlungen_${start}_bis_${end}.pdf`);
+});
+/***** Behandlung(en) speichern *****/
+async function onSaveTreatment(e) {
+  e.preventDefault();
+  const form = e.currentTarget;
+
+  // 1) Bootstrap / HTML5 Validierung
+  if (!form.checkValidity()) {
+    form.classList.add("was-validated");
+    return;
+  }
+
+  // 2) Eingaben holen
+  const treatmentDate = qs("#treatment-date").value; // required in HTML setzen
+  const description   = qs("#treatment-description")?.value?.trim() || null;
+  const vet           = qs("#treatment-vet")?.value?.trim() || null;
+
+  // Tiere (aus deinem Hidden Field vom Picker)
+  const animalIdsRaw = qs("#selected-animal-ids")?.value || "";
+  const animalIds = animalIdsRaw
+    .split(",")
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  if (animalIds.length === 0) {
+    showAlert("danger", "Bitte mindestens ein Tier auswählen.");
+    return;
+  }
+
+  // Medikamente (multiple select)
+  const medicationIds = Array
+    .from(qs("#treatment-medications").selectedOptions || [])
+    .map(o => o.value)
+    .filter(Boolean);
+
+  if (medicationIds.length === 0) {
+    // Optional: falls Medikamente Pflicht sein sollen, ersetze confirm durch return
+    const ok = confirm("Keine Medikamente ausgewählt. Trotzdem speichern?");
+    if (!ok) return;
+  }
+
+  // 3) Basis-Payload für treatments (für alle Tiere identisch)
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  if (userErr || !userData?.user) {
+    showAlert("danger", "Benutzer konnte nicht ermittelt werden. Bitte neu einloggen.");
+    return;
+  }
+  const user = userData.user;
+
+  if (!currentFarmId) {
+    showAlert("danger", "Keine Farm ausgewählt. Bitte neu anmelden.");
+    return;
+  }
+
+  const baseTreatment = {
+    treatment_date: treatmentDate,
+    description,
+    vet,
+    farm_id: currentFarmId,
+    created_by: user.id,
+    created_by_email: user.email,
+    updated_by: user.id,
+    updated_by_email: user.email
+  };
+
+  // 4) Treatments pro Tier erzeugen
+  const treatmentPayloads = animalIds.map(animal_id => ({
+    ...baseTreatment,
+    animal_id
+  }));
+
+  // 5) Speichern: treatments (Bulk Insert)
+  const { data: insertedTreatments, error: insErr } = await supabase
+    .from("treatments")
+    .insert(treatmentPayloads)
+    .select("id, animal_id");
+
+  if (insErr) {
+    console.error(insErr);
+    showAlert("danger", "Fehler beim Speichern der Behandlungen: " + insErr.message);
+    return;
+  }
+
+  // 6) Verknüpfen: treatment_medications (Bulk Insert)
+  // Kreuzprodukt: jede Behandlung × jedes Medikament
+  if (medicationIds.length > 0) {
+    const links = [];
+    for (const t of insertedTreatments) {
+      for (const medId of medicationIds) {
+        links.push({
+          treatment_id: t.id,
+          medication_id: medId
+        });
+      }
+    }
+
+    const { error: linkErr } = await supabase
+      .from("treatment_medications")
+      .insert(links);
+
+    if (linkErr) {
+      console.error(linkErr);
+      // Treatments sind gespeichert, Links teilweise/gar nicht -> transparent melden
+      showAlert(
+        "warning",
+        `Behandlungen gespeichert (${insertedTreatments.length}), aber Medikamente konnten nicht vollständig verknüpft werden: ${linkErr.message}`
+      );
+      return;
+    }
+  }
+
+  // 7) Erfolg + Reset
+  showAlert("success", `Behandlungen für ${animalIds.length} Tier(e) gespeichert.`);
+  form.reset();
+  form.classList.remove("was-validated");
+
+  // Optional: ausgewählte Tiere-Pills leeren, Hidden-Feld leeren
+  const selected = qs("#selected-animals");
+  if (selected) selected.innerHTML = "";
+  const hidden = qs("#selected-animal-ids");
+  if (hidden) hidden.value = "";
+}

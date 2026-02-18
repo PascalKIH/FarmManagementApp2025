@@ -27,6 +27,23 @@ const form = document.getElementById("medication-form");
     await client.auth.signOut();
     window.location.href = "../auth.html";
   });
+  const input = document.getElementById("med-aftercare");
+  document.getElementById("btn-minus").addEventListener("click", () => {
+    const step = Number(input.step) || 1;
+    const min = input.min === "" ? -Infinity : Number(input.min);
+    let val = Number(input.value) - step;
+    if (val < min) val = min;
+    input.value = val;
+  });
+
+  document.getElementById("btn-plus").addEventListener("click", () => {
+    const step = Number(input.step) || 1;
+    const max = input.max === "" ? Infinity : Number(input.max);
+    let val = Number(input.value) + step;
+    if (val > max) val = max;
+    input.value = val;
+  });
+
 })();
 
 // ---------- Medikament speichern ----------
@@ -40,6 +57,7 @@ if (form) {
     const dosage = document.getElementById("med-dosage").value.trim();
     const administration = document.getElementById("med-administration").value;
     const aftercare = document.getElementById("med-aftercare").value.trim();
+    const is_vaccine = document.getElementById("is-vaccine").checked;
 
     if (!name) {
       alert("Bitte einen Medikamentennamen angeben.");
@@ -55,6 +73,7 @@ if (form) {
       dosage,
       administration,
       aftercare,
+      is_vaccine,
       farm_id: currentFarmId,
       created_by: user.id,
       created_by_email: user.email,
