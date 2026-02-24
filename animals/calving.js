@@ -1,7 +1,7 @@
 /***** Supabase-Konfiguration *****/
 const SUPABASE_URL = "https://kfonugwtvqmpltfdldri.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtmb251Z3d0dnFtcGx0ZmRsZHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NDY4MDUsImV4cCI6MjA3NDMyMjgwNX0.H-9mm9JdAAhLUrhvSRf_j47POPNQR4MhcXpT3dHCa38";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 /***** State *****/
 let currentUser = null;
@@ -34,7 +34,7 @@ function showAlert(type = "success", html = "") {
 /***** Init *****/
 (async function init() {
   // Session prüfen
-  const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+  const { data: sessionData, error: sessionErr } = await client.auth.getSession();
   if (sessionErr) {
     showAlert("danger", "Fehler beim Laden der Session.");
     return;
@@ -71,7 +71,7 @@ async function populateParentSelects() {
   const selF = qs("#father_id");
   if (!selM || !selF) return;
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("animals")
     .select("id, animal_number, gender")
     .eq(TEAM_FIELD, currentFarmId)
@@ -95,7 +95,7 @@ async function populateParentSelects() {
 async function hasDuplicateAnimal({ animal_number, animal_id }) {
   // Prüft innerhalb der aktuellen Farm, ob die Tiernummer ODER die Tier-ID bereits existiert
   // Hinweis: ilike für case-insensitive, kannst du auch eq verwenden, wenn exakt
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("animals")
     .select("id, animal_number, animal_id")
     .eq("farm_id", currentFarmId)
@@ -161,7 +161,7 @@ async function onSaveAnimal(e) {
     return;
     }
 
-    const { error } = await supabase.from("animals").insert([payload]);
+    const { error } = await client.from("animals").insert([payload]);
     if (error) {
         console.error(error);
         toastErr(error.message);

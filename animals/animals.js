@@ -1,21 +1,11 @@
-/***** Supabase-Konfiguration *****/
-const SUPABASE_URL = "https://kfonugwtvqmpltfdldri.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtmb251Z3d0dnFtcGx0ZmRsZHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NDY4MDUsImV4cCI6MjA3NDMyMjgwNX0.H-9mm9JdAAhLUrhvSRf_j47POPNQR4MhcXpT3dHCa38";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const TEAM_FIELD = "farm_id";
-
-/***** State *****/
-let currentUser = null;
-let currentFarmId = localStorage.getItem("currentFarmId");
-let currentAnimal = null;
-
 // Paging + Filter
 let page = 0;
 const pageSize = 20;
 let filterText = "";
 let filterGender = "";
-
+let currentUser = null;
+let currentFarmId = localStorage.getItem("currentFarmId");
+let currentAnimal = null;
 /***** UI Helpers *****/
 const qs = sel => document.querySelector(sel);
 const qsa = sel => Array.from(document.querySelectorAll(sel));
@@ -35,24 +25,14 @@ function fmtDate(d) {
   try { return new Date(d).toLocaleDateString(); } catch { return d; }
 }
 
-/***** Init *****/
-(async function init() {
-  const { data } = await supabase.auth.getSession();
-  if (!data.session) {
-    window.location.href = "../auth.html";
-    return;
-  }
-  currentUser = data.session.user;
-  qs("#navbar-username").textContent = currentUser.user_metadata?.username || currentUser.email;
-
-  if (!currentFarmId) {
-    console.warn("Keine Farm/Team gewählt.");
-    return;
-  }
-
+(async function () {
+  const user = await App.requireAuth("/auth.html");
+  console.log("Aktueller User:", user);
+  if (!user) return;
   bindEvents();
   await loadAnimals();
 })();
+
 
 /***** Events *****/
 function bindEvents() {
@@ -86,13 +66,6 @@ function bindEvents() {
   const resetBtn = qs("#reset-form");
   form?.addEventListener("submit", onSaveAnimal);
   resetBtn?.addEventListener("click", () => form.reset());
-
-  // Logout
-  qs("#logout-btn")?.addEventListener("click", async () => {
-    await supabase.auth.signOut();
-    localStorage.removeItem("currentFarmId");
-    window.location.href = "../auth.html";
-  });
 }
 function isMobile() {
   return window.innerWidth < 768;
@@ -105,7 +78,7 @@ async function fetchAllAnimals(teamId, filterText, filterGender) {
   const rows = [];
 
   while (true) {
-    let q = supabase
+    let q = App.sb
       .from("animals")
       .select("id, animal_number, animal_id, birth_date, gender, mother_id, father_id")
       .eq("farm_id", teamId)
@@ -151,7 +124,7 @@ async function loadAnimals() {
       if (tbody) tbody.innerHTML = "";
     } else {
       // 🔹 DESKTOP: Paged + Count
-      let query = supabase
+      let query = App.sb
         .from("animals")
         .select("id, animal_number, animal_id, birth_date, gender, mother_id, father_id", { count: "exact" })
         .eq("farm_id", currentFarmId)
@@ -262,7 +235,7 @@ function badgeForGender(g) {
 
 /***** Details + Behandlungen + Stammbaum *****/
 async function openDetails(id) {
-  const { data: a, error } = await supabase
+  const { data: a, error } = await App.sb
     .from("animals")
     .select("id, animal_number, animal_id, birth_date, gender, mother_id, father_id")
     .eq("id", id)
@@ -291,7 +264,7 @@ async function loadTreatmentsForAnimal(animalId) {
   if (!list) return;
   list.innerHTML = "<li class='list-group-item text-muted'>Laden…</li>";
 
-  const { data, error } = await supabase
+  const { data, error } = await App.sb
     .from("treatments")
     .select("id, treatment_date, description, vet")
     .eq("animal_id", animalId)
@@ -318,7 +291,7 @@ async function loadTreatmentsForAnimal(animalId) {
 
 /***** Stammbaum (2 Ebenen – erweiterbar) *****/
 async function loadPedigree(animalId) {
-  const { data: animal } = await supabase
+  const { data: animal } = await App.sb
     .from("animals")
     .select("id, animal_number, gender, birth_date, mother_id, father_id")
     .eq("id", animalId)
@@ -326,7 +299,7 @@ async function loadPedigree(animalId) {
 
   async function fetchAnimal(id) {
     if (!id) return null;
-    const { data } = await supabase
+    const { data } = await App.sb
       .from("animals")
       .select("id, animal_number, gender, mother_id, father_id")
       .eq("id", id)

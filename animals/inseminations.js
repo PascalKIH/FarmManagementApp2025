@@ -1,12 +1,12 @@
 const SUPABASE_URL = "https://kfonugwtvqmpltfdldri.supabase.co"; // <-- dein Projekt
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtmb251Z3d0dnFtcGx0ZmRsZHJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg3NDY4MDUsImV4cCI6MjA3NDMyMjgwNX0.H-9mm9JdAAhLUrhvSRf_j47POPNQR4MhcXpT3dHCa38";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
 let currentFarmId = localStorage.getItem("currentFarmId");
 
 // ---------------- Session laden ----------------
-supabase.auth.getSession().then(async ({ data }) => {
+client.auth.getSession().then(async ({ data }) => {
   if (!data.session) {
     window.location.href = "../auth.html"; // nicht eingeloggt → zurück zur Auth-Seite
     return;
@@ -18,7 +18,7 @@ supabase.auth.getSession().then(async ({ data }) => {
 
 // ---------------- Logout ----------------
 document.getElementById("logout-btn").addEventListener("click", async () => {
-  await supabase.auth.signOut();
+  await client.auth.signOut();
   localStorage.removeItem("currentFarmId");
   window.location.href = "../auth.html";
 });
@@ -32,7 +32,7 @@ async function loadFarmAndProfile() {
   }
 
   // Farm aus DB laden
-  const { data: farm, error } = await supabase
+  const { data: farm, error } = await client
     .from("farms")
     .select("id, name, invite_code")
     .eq("id", farmId)
@@ -68,7 +68,7 @@ async function populateInseminationAnimals() {
   const sel = document.getElementById("insemination-animal");
   sel.innerHTML = "<option>-- Tiere werden geladen... --</option>";
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("animals")
     .select("id, animal_number, gender")
     .eq("farm_id", currentFarmId)
@@ -93,7 +93,7 @@ async function populateBullSelect() {
     const sel = document.getElementById("bull_id");
     sel.innerHTML = "<option>-- Bullen werden geladen... --</option>";
 
-    const { data, error } = await supabase
+    const { data, error } = await client
         .from("bulls")
         .select("id, name")
         .eq("farm_id", currentFarmId)
@@ -127,7 +127,7 @@ document.getElementById("insemination-form").addEventListener("submit", async (e
     return;
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from("inseminations")
     .insert([
       {
@@ -172,7 +172,7 @@ document.getElementById("save-bull-btn").onclick = async function() {
     console.log("➡️ Sende Payload:", payload);
 
     try {
-    const { data, error } = await supabase
+    const { data, error } = await client
         .from("bulls")
         .insert([{ name: bullName, breed: bullBreed, farm_id: currentFarmId }])
         .select()

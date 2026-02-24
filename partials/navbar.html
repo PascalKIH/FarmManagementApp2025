@@ -1,11 +1,10 @@
-<!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-success">
   <div class="container-fluid">
 
     <!-- Brand -->
-    <a class="navbar-brand" data-nav href="index.html">🐄 Farm Manager</a>
+    <a class="navbar-brand" data-nav href="#" data-href="index.html">🐄 Farm Manager</a>
 
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Navigation umschalten">
       <span class="navbar-toggler-icon"></span>
     </button>
 
@@ -14,52 +13,53 @@
 
         <!-- Dashboard -->
         <li class="nav-item">
-          <a class="nav-link" data-nav href="index.html">Dashboard</a>
+          <a class="nav-link" data-nav href="#" data-href="index.html">Dashboard</a>
         </li>
 
         <!-- Tiere -->
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Tiere</a>
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false">Tiere</a>
           <ul class="dropdown-menu">
             <li><span class="dropdown-item-text submenu-title">Übersicht</span></li>
-            <li><a class="dropdown-item" data-nav href="animals/animals.html">Tiere – Übersicht</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="animals/animals.html">Tiere – Übersicht</a></li>
 
             <li><hr class="dropdown-divider"></li>
             <li><span class="dropdown-item-text submenu-title">Dateneingabe</span></li>
-            <li><a class="dropdown-item" data-nav href="animals/inseminations.html">Besamung</a></li>
-            <li><a class="dropdown-item" data-nav href="animals/pregnancy_tests.html">Trächtigkeitsuntersuchung</a></li>
-            <li><a class="dropdown-item" data-nav href="animals/calving.html">Geburt</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="animals/inseminations.html">Besamung</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="animals/pregnancy_tests.html">Trächtigkeitsuntersuchung</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="animals/calving.html">Geburt</a></li>
           </ul>
         </li>
 
         <!-- Behandlungen -->
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Behandlungen</a>
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false">Behandlungen</a>
           <ul class="dropdown-menu">
             <li><span class="dropdown-item-text submenu-title">Übersicht</span></li>
-            <li><a class="dropdown-item" data-nav href="treatments/treatments.html">Behandlungen – Übersicht</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="treatments/treatments.html">Behandlungen – Übersicht</a></li>
 
             <li><hr class="dropdown-divider"></li>
             <li><span class="dropdown-item-text submenu-title">Dateneingabe</span></li>
-            <li><a class="dropdown-item" data-nav href="treatments/vaccinations.html">Impfung</a></li>
-            <li><a class="dropdown-item" data-nav href="treatments/treatments.html">Behandeln</a></li>
-            <li><a class="dropdown-item" data-nav href="treatments/examinations.html">Untersuchen</a></li>
-            <li><a class="dropdown-item" data-nav href="treatments/medications.html">Medikamente</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="treatments/vaccinations.html">Impfung</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="treatments/treatments.html">Behandeln</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="treatments/examinations.html">Untersuchen</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="treatments/medications.html">Medikamente</a></li>
           </ul>
         </li>
 
         <!-- Bewegungen -->
         <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Bewegungen</a>
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false">Bewegungen</a>
           <ul class="dropdown-menu">
             <li><span class="dropdown-item-text submenu-title">Übersicht</span></li>
-            <li><a class="dropdown-item" data-nav href="movements/movements.html">Bewegungen – Übersicht</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="movements/movements.html">Bewegungen – Übersicht</a></li>
+
             <li><hr class="dropdown-divider"></li>
             <li><span class="dropdown-item-text submenu-title">Dateneingabe</span></li>
-            <li><a class="dropdown-item" data-nav href="movements/move.html">Tier verschieben</a></li>
-            <li><a class="dropdown-item" data-nav href="movements/locations.html">Neuen Ort hinzufügen</a></li>
-            <li><a class="dropdown-item" data-nav href="movements/intake.html">Zugang</a></li>
-            <li><a class="dropdown-item" data-nav href="movements/exit.html">Abgang</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="movements/move.html">Tier verschieben</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="movements/locations.html">Neuen Ort hinzufügen</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="movements/intake.html">Zugang</a></li>
+            <li><a class="dropdown-item" data-nav href="#" data-href="movements/exit.html">Abgang</a></li>
           </ul>
         </li>
 
@@ -67,8 +67,7 @@
 
       <!-- Profil -->
       <div class="dropdown">
-        <button class="btn btn-outline-light dropdown-toggle" type="button"
-                id="userMenu" data-bs-toggle="dropdown">
+        <button class="btn btn-outline-light dropdown-toggle" type="button" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
           <span id="navbar-username">Profil</span>
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
@@ -81,3 +80,24 @@
     </div>
   </div>
 </nav>
+
+<!-- Profil Modal (optional) -->
+<div class="modal fade" id="profileModal" tabindex="-1" aria-hidden="true">
+<div class="modal-dialog">
+    <div class="modal-content">
+    <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Profil</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+    </div>
+    <div class="modal-body">
+        <p><strong>Benutzername:</strong> <span id="profile-username">—</span></p>
+        <p><strong>E-Mail:</strong> <span id="profile-email">—</span></p>
+        <p><strong>Farm:</strong> <span id="profile-farm">—</span></p>
+        <p><strong>Farm-Code:</strong> <span id="profile-farmcode">—</span></p>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Schließen</button>
+    </div>
+    </div>
+</div>
+</div>
