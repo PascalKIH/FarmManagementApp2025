@@ -2,7 +2,7 @@
 (async function () {
   
   // 1) Login erzwingen (redirectTo optional)
-  const user = await App.requireAuth("/auth.html");
+  const user = await App.requireAuth("auth.html");
   console.log("Aktueller User:", user);
   if (!user) return;
 

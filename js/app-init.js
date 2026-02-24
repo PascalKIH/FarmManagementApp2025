@@ -15,24 +15,26 @@
     const host = window.location.hostname;
     const parts = window.location.pathname.split("/").filter(Boolean);
 
+    // lokal: Live Server
     if (!host.endsWith("github.io")) return "/";
 
-    const ROOT_FOLDERS = new Set([
-      "animals", "treatments", "movements",
-      "js", "css", "partials", "assets"
-    ]);
+    // GitHub Pages:
+    // User Page:  /auth.html oder /animals/animals.html  -> base "/"
+    // Project Page: /FarmManagementApp2025/auth.html     -> base "/FarmManagementApp2025/"
+    //
+    // Erkennung: Wenn erstes Segment NICHT wie eine Datei aussieht,
+    // behandeln wir es als Repo-Name.
+    const first = parts[0];                 // z.B. "FarmManagementApp2025" oder "auth.html"
+    const looksLikeFile = first && first.includes(".");
 
-    if (parts.length >= 2 && !ROOT_FOLDERS.has(parts[0])) {
-      return `/${parts[0]}/`;
-    }
-
-    return "/";
+    return looksLikeFile ? "/" : `/${first}/`;
   }
 
   function resolve(path) {
     if (/^https?:\/\//.test(path)) return path;
     const base = getBasePath();
-    return base + path.replace(/^\/+/, "");
+    const clean = String(path).replace(/^\/+/, "");
+    return base + clean;
   }
 
   // ==============================
@@ -43,6 +45,9 @@
     const { data: { session }, error } = await sb.auth.getSession();
 
     if (error || !session) {
+      console.log("[Auth] redirectTo raw:", redirectTo);
+      console.log("[Auth] base:", getBasePath());
+      console.log("[Auth] resolved:", resolve(redirectTo));
       window.location.href = resolve(redirectTo);
       return null;
     }
