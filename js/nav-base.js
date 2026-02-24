@@ -5,25 +5,30 @@
     "js", "css", "partials", "assets", "img", "images"
   ]);
 
-  function getBasePath() {
-    const host = window.location.hostname;              // z.B. "pascalkih.github.io" oder "127.0.0.1"
-    const parts = window.location.pathname.split("/").filter(Boolean);
-    console.log("NavBase - Host:", host, "Path Segments:", parts);
-    // Lokal (Live Server): Root ist "/"
-    if (!host.endsWith("github.io")) return "/";
+function getBasePath() {
+  const host = window.location.hostname;
+  const parts = window.location.pathname.split("/").filter(Boolean);
 
-    // GitHub Pages:
-    // - User Page:  https://USER.github.io/auth.html   => parts[0] = "auth.html" (kein repo folder)
-    // - Project Page: https://USER.github.io/REPO/auth.html => parts[0] = "REPO" (repo folder)
+  console.log("HOST:", host);
+  console.log("PATHNAME:", window.location.pathname);
+  console.log("SEGMENTS:", parts);
 
-    // Heuristik: Wenn erstes Segment KEIN bekannter Root-Ordner ist und wir mind. 2 Segmente haben,
-    // dann ist es sehr wahrscheinlich ein Repo-Name => base "/REPO/"
-    if (parts.length >= 2 && !ROOT_FOLDERS.has(parts[0])) {
-      return `/${parts[0]}/`;
-    }
-
+  if (!host.endsWith("github.io")) {
+    console.log("Base erkannt als: / (lokal)");
     return "/";
   }
+
+  const ROOT_FOLDERS = new Set(["animals","treatments","movements","js","css","partials"]);
+
+  if (parts.length >= 2 && !ROOT_FOLDERS.has(parts[0])) {
+    const base = `/${parts[0]}/`;
+    console.log("Base erkannt als (Project Page):", base);
+    return base;
+  }
+
+  console.log("Base erkannt als (User Page): /");
+  return "/";
+}
 
   window.NavBase = { getBasePath };
 })();

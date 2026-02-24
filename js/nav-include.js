@@ -17,6 +17,11 @@
       const target = a.getAttribute("data-href") || "";
       const clean = target.replace(/^\/+/, "");         // "index.html" statt "/index.html"
       a.setAttribute("href", base + clean);
+      console.log("Link generiert:", {
+        text: a.textContent.trim(),
+        dataHref: target,
+        finalHref: a.href
+      });
     });
 
     // Optional: Active-State
